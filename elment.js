@@ -52,7 +52,6 @@ _.autoloadComponents = (folder) => {
 _.require = () => ({
     file: (filePath) => {
         const absolutePath = path.resolve(__dirname, filePath);
-        console.log('path => ', absolutePath)
         if (!fs.existsSync(absolutePath)) {
             logError(`Component file not found: ${filePath}`, 'error');
             return null;
@@ -60,7 +59,6 @@ _.require = () => ({
 
         try {
             const component = require(absolutePath);
-            console.log('component', component)
             const name = path.basename(filePath, '.js'); // Extract component name
             _.register(name, component); // Register it globally
             return component;
@@ -119,54 +117,76 @@ _.render = (context) => {
 };
 
 // Helper function to generate HTML elements with error handling
-_.el = (tag, attributes = '', children = []) => {
+_.el = (tag, attributes = '', children = [], events = {}) => {
     try {
-        type = 1
         // Check if tag is a string
         if (typeof tag !== 'string') {
-            logError('Tag must be a string.', 'error', `Tag: ${tag}`);
+            console.error(`Tag must be a string. Given: ${tag}`);
             return '';
         }
 
-        // Check if attributes is a string, if not, set it to an empty string
-        // and make children the array passed
+        // Ensure attributes is a string
         if (typeof attributes !== 'string') {
-            logError('Attributes must be a string.', 'error', `Attributes: ${attributes}`);
-            // if attributes is an array
             if (Array.isArray(attributes)) {
-                children = attributes; // If not, convert it to an array
+                children = attributes; // Swap values if attributes is an array
+                attributes = '';
+            } else {
+                console.error(`Attributes must be a string. Given: ${attributes}`);
                 attributes = '';
             }
         }
 
-        // Ensure children is always an array
+        // Ensure children is an array
         if (!Array.isArray(children)) {
-            children = [children]; // If not, convert it to an array
-        } 
+            children = [children];
+        }
 
         // Process children: if any element is a function (el call), evaluate it
         children = children.map(child => {
             if (typeof child === 'function') {
                 return child();  // Call function if it's a function
             } else if (Array.isArray(child)) {
-                // Recursively process nested children arrays
-                return _.elment(child);
+                return _.elment(child); // Recursively process nested children
             }
             return child;  // If it's a plain string, return it
-        }).join('');  // Join children into a single string
+        }).join('');
 
-        return `<${tag} ${attributes}>${children}</${tag}>`
-        if (children === '') {
-            return `<${tag} ${attributes} />`;
-        } else {
-            return `<${tag} ${attributes}>${children}</${tag}>`;
+        let eventAttributes = events && typeof events === 'object'
+            ? Object.keys(events)
+                .map(eventType => {
+                    let eventHandler = events[eventType];
+
+                    // Ensure proper formatting of function calls inside attributes
+                    let eventCall = Array.isArray(eventHandler)
+                        ? eventHandler.map(fn => fn.replace(/"/g, `'`)).join(';') // Replace " with '
+                        : eventHandler.replace(/"/g, `'`);
+
+                    return `on${eventType}="${eventCall}"`;
+                })
+                .join(' ')
+            : '';
+
+        // Combine attributes and event attributes, removing empty strings
+        const allAttributes = [attributes, eventAttributes]
+            .map(attr => attr.trim())  // Trim any extra spaces
+            .filter(attr => attr !== '') // Filter out empty attributes
+            .join(' ');
+        
+
+        // Self-closing tags handling
+        const selfClosingTags = ['img', 'input', 'br', 'meta', 'link', 'hr'];
+        if (selfClosingTags.includes(tag.toLowerCase())) {
+            return `<${tag} ${allAttributes} />`; // Self-closing tag
         }
 
+        return `<${tag} ${allAttributes}>${children}</${tag}>`;
+
     } catch (error) {
-        logError(`Error occurred in _.el function: ${error.message}`, 'error', `Tag: ${tag}, Attributes: ${attributes}, Children: ${children}`);
-        return '';  // Return an empty string if error occurs
+        console.error(`Error in _.el(): ${error.message}`);
+        return `<${tag}></${tag}>`;  // Return fallback tag
     }
 };
+
 
 
 // Generate shorthand methods for common HTML elements
@@ -177,24 +197,26 @@ const elements = [
     'body', 'html', 'meta', 'title', 'link', 'head', 'br', 'main', 'small', 'hr', 'pre', 'code'
 ];
 
-/*elements.forEach(tag => {
-    _[tag] = (attributes = '', children = []) => {
-        // If children is not an array, treat it as plain content and make it an array
-        if (!Array.isArray(children)) {
-            children = [children];
-        }
-        return _.el(tag, attributes, children);
-    };
-});*/
-
 _.createEl = (tags) => {
     tags.forEach(tag => {
-        _[tag] = (attributes = '', children = []) => {
+        _[tag] = (attributes = '', children = [], events = {}) => {
             // If children is not an array, treat it as plain content and make it an array
             if (!Array.isArray(children)) {
                 children = [children];
             }
-            return _.el(tag, attributes, children);
+            return _.el(tag, attributes, children, events);
+        };
+    });
+}
+
+_.addEl = (els) => {
+    els.forEach(el => {
+        _[el.tag] = (attributes = '', children = [], events = {}) => {
+            // If children is not an array, treat it as plain content and make it an array
+            if (!Array.isArray(children)) {
+                children = [children];
+            }
+            return _.el(tag, el.attr, el.children, el.events);
         };
     });
 }
@@ -214,7 +236,7 @@ _.elment = (elements) => {
 
 // Helper function for adding global data
 _.helpers = (helperName, helperFunction) => {
-    _.M$[helperName] = helperFunction;
+    _.h[helperName] = helperFunction;
 };
 
 // In framework.js or helpers.js
@@ -231,7 +253,7 @@ _.switch = (condition, cases) => {
         }
         return cases['default'] || '';
     }
-};
+};  
 
 _.where = (data, condition) => {
     if (typeof condition === 'function') {
@@ -247,9 +269,9 @@ _.where = (data, condition) => {
     }
 };
 
-_.for = (data, end, callback) => {
+_.for = (data, callback, end) => {
     if (Array.isArray(data)) {
-        return data.map((item, index) => callback(item, index));
+        return data.map((item, index) => callback(item, index)).join('');
     } 
     
     if (typeof data === 'object') {
@@ -274,176 +296,3 @@ _.for = (data, end, callback) => {
 
 // Export the framework
 module.exports = _
-
-
-/*
-component examples
-_.switch()
-// components/header.js
-module.exports = {
-    render: (context) => {
-        const user = context.requestData.user;
-        const isAuthenticated = context.requestData.isAuthenticated;
-
-        // Create navigation items based on user role
-        const navItems = _.switch(user.role, {
-            admin: [
-                _.el('li', '', _.el('a', 'href="/dashboard"', 'Dashboard')),
-                _.el('li', '', _.el('a', 'href="/settings"', 'Settings'))
-            ],
-            user: [
-                _.el('li', '', _.el('a', 'href="/profile"', 'Profile')),
-                _.el('li', '', _.el('a', 'href="/logout"', 'Logout'))
-            ],
-            default: [
-                _.el('li', '', _.el('a', 'href="/login"', 'Login')),
-                _.el('li', '', _.el('a', 'href="/register"', 'Register'))
-            ]
-        });
-
-        // Render header with dynamic navItems
-        return _.el('header', 'class="site-header"', [
-            _.el('h1', '', `Welcome to JL WebServices`),
-            _.el('nav', 'class="main-nav"', [
-                _.el('ul', '', navItems)  // Dynamically rendered navigation items
-            ])
-        ]);
-    }
-};
-
-_.if()
-// components/header.js
-module.exports = {
-    render: (context) => {
-        const user = context.requestData.user;
-        const isAuthenticated = context.requestData.isAuthenticated;
-
-        // Create navigation items based on user role
-        const navItems = _.if(
-            isAuthenticated,
-            _.el('ul', '', [
-                _.el('li', '', _.el('a', 'href="/profile"', 'Profile')),
-                _.el('li', '', _.el('a', 'href="/logout"', 'Logout'))
-            ]),
-            _.el('ul', '', [
-                _.el('li', '', _.el('a', 'href="/login"', 'Login')),
-                _.el('li', '', _.el('a', 'href="/register"', 'Register'))
-            ])
-        );
-
-        // Render header with dynamic navItems
-        return _.el('header', 'class="site-header"', [
-            _.el('h1', '', `Welcome to JL WebServices`),
-            _.el('nav', 'class="main-nav"', [navItems])  // Dynamically rendered navigation items
-        ]);
-    }
-};
-
-_.where()
-// components/userList.js
-module.exports = {
-    render: (context) => {
-        const users = [
-            { name: 'Alice', age: 30, status: 'active' },
-            { name: 'Bob', age: 22, status: 'inactive' },
-            { name: 'Charlie', age: 28, status: 'active' },
-            { name: 'David', age: 35, status: 'inactive' }
-        ];
-
-        // Filter active users
-        const activeUsers = _.where(users, { status: 'active' });
-
-        // Render the active users list
-        return _.el('section', 'class="user-list"', [
-            _.el('h2', '', 'Active Users'),
-            _.el('ul', '', activeUsers.map(user =>
-                _.el('li', '', `${user.name} - Age: ${user.age}`)
-            ))
-        ]);
-    }
-};
-
-module.exports = {
-    render: (context) => {
-        const teamMembers = [
-            "Alice Johnson - CEO",
-            "Bob Smith - Lead Developer",
-            "Charlie Brown - UI/UX Designer",
-            "Dana White - Marketing Manager",
-            "Elliot Harper - Sales Director"
-        ];
-
-        return _.el('section', 'class="team-section"', [
-            _.el('h3', '', 'Meet Our Team'),
-            _.el('ul', 'class="team-list"', _.for(teamMembers, null, (member, index) =>
-                _.el('li', '', teamMembers[index])
-            ))
-        ]);
-    }
-};
-
-
-to create a template you can create a _.render() file  into 
-where content _.$['component'].render(context.component) would be the expected content
-the route set up where you would put the context. 
-you could use a separte file of a js obj or a rendered component variable.
-use context for url specific randering as well
-
-const express = require('express');
-const _ = require('./framework'); // Load your framework
-const app = express();
-
-app.use(express.static('public')); // Serve static files
-
-const PORT = 3000;
-
-_.register('header', require('./components/header'));
-_.register('footer', require('./components/footer'));
-
-app.get('/', (req, res) => {
-    const context = {
-        title: 'Home Page',
-        user: { name: 'John Doe', role: 'admin', isAuthenticated: true },
-        content: 'Welcome to the Home Page!'
-    };
-
-    const html = _.render(context);
-    res.send(html);
-});
-
-_.render = (context) => {
-    return _.el('html', 'lang="en"', [
-        _.el('head', '', [
-            _.el('title', '', context.title),
-            _.el('link', `rel="stylesheet" href="${content.css}"`)
-        ]),
-        _.el('body', '', [
-            _.$['header'] ? _.$['header'].render(context) : '',
-            _.el('main', 'id="main-content"', context.content),
-            _.$['footer'] ? _.$['footer'].render(context) : ''
-        ])
-    ]);
-};
-
-// Auto-load all components Example
-_.autoloadComponents();
-
-// Define a route
-app.get('/', (req, res) => {
-    const context = {
-        title: 'Home Page',
-        user: { name: 'John Doe', role: 'admin', isAuthenticated: true },
-        content: [
-            _.$['homeSkills'].render(),
-            _.$['homePrices'].render()
-        ].join('')
-    };
-
-    res.send(_.render(context));
-});
-*/
-
-// Lets see if i can make it work
-
-// Export the framework
-module.exports = _;
