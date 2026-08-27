@@ -131,13 +131,38 @@
     return typeof branch === 'function' ? branch() : branch;
   }
 
-  // Auto-generate tag functions for common HTML elements.
-  // Add more tag names here as you need them.
+  // Auto-generate tag functions for every standard HTML content element.
+  // Excluded on purpose: document-structure tags (html, head, body, meta,
+  // link, base, title) and raw-text tags (script, style) — these don't
+  // fit the vnode/children model and aren't things a component tree
+  // builds. Add more here if a real one is still missing.
   const tagNames = [
-    'div', 'span', 'button', 'h1', 'h2', 'h3', 'h4', 'p', 'a', 'img',
-    'ul', 'ol', 'li', 'input', 'label', 'section', 'header', 'footer',
-    'nav', 'main', 'article', 'aside', 'form', 'select', 'option',
-    'textarea', 'table', 'thead', 'tbody', 'tr', 'td', 'th'
+    // text content
+    'div', 'span', 'p', 'a', 'br', 'hr', 'blockquote', 'q', 'pre', 'code',
+    'kbd', 'samp', 'var', 'cite', 'abbr', 'address', 'time', 'mark',
+    'small', 'strong', 'em', 'b', 'i', 'u', 's', 'sub', 'sup', 'del',
+    'ins', 'wbr',
+    // headings
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hgroup',
+    // lists
+    'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+    // sections
+    'header', 'footer', 'nav', 'main', 'article', 'aside', 'section',
+    // forms
+    'form', 'input', 'label', 'select', 'option', 'optgroup', 'textarea',
+    'button', 'fieldset', 'legend', 'datalist', 'output', 'progress',
+    'meter',
+    // tables
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'caption',
+    'colgroup', 'col',
+    // media / embedded
+    'img', 'audio', 'video', 'source', 'track', 'canvas', 'svg', 'iframe',
+    'embed', 'object', 'param', 'picture', 'figure', 'figcaption', 'map',
+    'area',
+    // interactive
+    'details', 'summary', 'dialog', 'menu',
+    // misc containers
+    'template', 'slot', 'noscript'
   ];
   const el = {};
   tagNames.forEach(t => { el[t] = makeTag(t); });
@@ -389,12 +414,32 @@
      Public API — exposed as plain globals so a bare <script> tag
      is enough to use them, matching the rest of elment's
      no-build-step philosophy.
+
+     A few tag names, capitalized, collide with real JS/DOM globals
+     (div -> Div is fine, but object -> Object and map -> Map would
+     silently overwrite the built-in Object and Map constructors —
+     which this very file depends on internally via Object.keys,
+     Object.assign, and new Map()). Those tags are still buildable,
+     just via el.object(...) / el.map(...) instead of a bare global,
+     so nothing on the page — including elment.js itself — gets its
+     built-ins clobbered.
      ============================================================ */
+  const RESERVED_GLOBALS = new Set([
+    'Object', 'Map', 'Set', 'Array', 'Function', 'Date', 'Boolean',
+    'Number', 'String', 'Symbol', 'Promise', 'RegExp', 'Error', 'Proxy',
+    'Reflect', 'JSON', 'Math', 'Node', 'Text', 'Event', 'Document', 'Window'
+  ]);
+
+  const tagGlobals = Object.fromEntries(
+    Object.entries(el)
+      .map(([tag, fn]) => [tag.charAt(0).toUpperCase() + tag.slice(1), fn])
+      .filter(([capName]) => !RESERVED_GLOBALS.has(capName))
+  );
+
   const api = {
-    // tag functions, capitalized (Div, Button, H1, ...)
-    ...Object.fromEntries(
-      Object.entries(el).map(([tag, fn]) => [tag.charAt(0).toUpperCase() + tag.slice(1), fn])
-    ),
+    // tag functions, capitalized (Div, Button, H1, ...) — minus the
+    // handful reserved above, which stay reachable via el.<tag>
+    ...tagGlobals,
     Html, If, Else, For, While, Case,
     start, mount, update, rerender: () => rerender(),
     Fetch, provide, use,
