@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>elment.js — build it, wire it, ship it</title>
+<meta name="description" content="A dependency-free JavaScript framework. No bundler, no build step, one file.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-900: #0E2A47;
+    --blue-800: #123457;
+    --blue-700: #1D4470;
+    --blue-500: #5B85AD;
+    --paper: #EDF2F6;
+    --paper-dim: #DCE5EC;
+    --copper: #FF8C42;
+    --copper-dim: #C96A2E;
+    --ink: #0E2A47;
+    --good: #57B894;
+
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--blue-900);
+    background-image:
+      linear-gradient(var(--blue-800) 1px, transparent 1px),
+      linear-gradient(90deg, var(--blue-800) 1px, transparent 1px);
+    background-size: 32px 32px;
+    color: var(--paper);
+    font-family: var(--body);
+    line-height: 1.55;
+  }
+
+  a { color: var(--copper); }
+
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin: 0 0 14px;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    margin: 0;
+    color: #fff;
+  }
+
+  code, pre {
+    font-family: var(--mono);
+  }
+
+  /* ---- Header / hero ---- */
+
+  header.hero {
+    padding: 96px 0 64px;
+  }
+
+  .hero h1 {
+    font-size: clamp(40px, 6vw, 68px);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+  }
+
+  .hero .sub {
+    max-width: 52ch;
+    color: var(--blue-500);
+    font-size: 18px;
+    margin: 20px 0 0;
+  }
+
+  .hero .sub strong { color: var(--paper); font-weight: 500; }
+
+  .cta-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 12px 20px;
+    border-radius: 3px;
+    border: 1px solid var(--copper);
+    background: var(--copper);
+    color: var(--blue-900);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn:hover { background: var(--copper-dim); border-color: var(--copper-dim); }
+
+  .btn.ghost {
+    background: transparent;
+    color: var(--paper);
+    border-color: var(--blue-700);
+  }
+  .btn.ghost:hover { border-color: var(--blue-500); }
+
+  /* ---- Schematic (signature element) ---- */
+
+  .schematic {
+    margin-top: 56px;
+    border: 1px solid var(--blue-700);
+    border-radius: 4px;
+    padding: 28px;
+    background: rgba(237, 242, 246, 0.02);
+    position: relative;
+  }
+
+  .schematic .tick {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--blue-500);
+  }
+  .schematic .tick.tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .schematic .tick.tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+  .schematic .tick.bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+  .schematic .tick.br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  .schematic-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+  }
+
+  .plug {
+    font-family: var(--mono);
+    font-size: 15px;
+    padding: 14px 18px;
+    border-radius: 3px;
+    border: 1px solid var(--blue-700);
+    background: var(--blue-800);
+    white-space: nowrap;
+  }
+  .plug .label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--copper);
+    margin-bottom: 6px;
+  }
+  .plug .code { color: var(--paper); }
+  .plug .attr { color: #8FB6D9; }
+  .plug .str { color: var(--good); }
+
+  .wire {
+    flex: 1;
+    min-width: 40px;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, var(--copper) 0 6px, transparent 6px 11px);
+    position: relative;
+  }
+  .wire::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: -3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--copper);
+  }
+
+  .schematic .caption {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--blue-500);
+    margin-top: 16px;
+  }
+
+  @media (max-width: 640px) {
+    .schematic-row { flex-direction: column; align-items: stretch; }
+    .wire { width: 1px; height: 28px; margin: 4px auto; }
+    .wire::after { right: -3px; top: auto; bottom: -4px; }
+  }
+
+  /* ---- Sections ---- */
+
+  section {
+    padding: 64px 0;
+    border-top: 1px dashed var(--blue-700);
+  }
+
+  section h2 {
+    font-size: 28px;
+  }
+
+  section > .wrap > .eyebrow { margin-top: 4px; }
+
+  .section-lead {
+    color: var(--blue-500);
+    max-width: 58ch;
+    margin: 14px 0 32px;
+    font-size: 15px;
+  }
+
+  /* ---- Live demo panel ---- */
+
+  .demo-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--blue-700);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .demo-panel .source {
+    background: var(--blue-800);
+    padding: 20px;
+    border-right: 1px solid var(--blue-700);
+    overflow-x: auto;
+  }
+  .demo-panel .source pre {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #B9CEE1;
+    white-space: pre;
+  }
+  .demo-panel .source .kw { color: var(--copper); }
+  .demo-panel .source .str { color: var(--good); }
+
+  .demo-panel .live {
+    background: var(--paper);
+    color: var(--ink);
+    padding: 20px;
+  }
+  .demo-panel .live-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--copper-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--good);
+    display: inline-block;
+  }
+
+  @media (max-width: 720px) {
+    .demo-panel { grid-template-columns: 1fr; }
+    .demo-panel .source { border-right: none; border-bottom: 1px solid var(--blue-700); }
+  }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--blue-700);
+    margin-bottom: 5px;
+  }
+  .field input[type="text"], .field select {
+    width: 100%;
+    font-family: var(--body);
+    font-size: 14px;
+    padding: 8px 10px;
+    border: 1px solid var(--paper-dim);
+    border-radius: 3px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .field.checkline { display: flex; align-items: center; gap: 8px; }
+  .field.checkline label { margin: 0; color: var(--ink); font-family: var(--body); font-size: 14px; }
+
+  .demo-btn {
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 3px;
+    border: 1px solid var(--blue-900);
+    background: var(--blue-900);
+    color: #fff;
+    cursor: pointer;
+  }
+  .demo-btn:hover { background: var(--blue-700); }
+
+  .demo-note {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--copper-dim);
+    margin-top: 12px;
+    border-top: 1px dashed var(--paper-dim);
+    padding-top: 10px;
+  }
+
+  /* ---- Parts list (BOM) ---- */
+
+  table.parts {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.parts th {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--blue-500);
+    border-bottom: 1px solid var(--blue-700);
+    padding: 8px 12px 8px 0;
+  }
+  table.parts td {
+    padding: 12px 12px 12px 0;
+    border-bottom: 1px solid var(--blue-800);
+    vertical-align: top;
+  }
+  table.parts td.part-name {
+    font-family: var(--mono);
+    color: var(--copper);
+    white-space: nowrap;
+  }
+  table.parts td.part-desc { color: var(--blue-500); }
+
+  /* ---- Get started ---- */
+
+  .steps {
+    display: grid;
+    gap: 16px;
+  }
+  .step {
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 16px;
+  }
+  .step .n {
+    font-family: var(--mono);
+    color: var(--copper);
+    border: 1px solid var(--blue-700);
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .step .body h4 {
+    font-family: var(--display);
+    color: #fff;
+    margin: 4px 0 6px;
+    font-size: 16px;
+  }
+  .step pre {
+    background: var(--blue-800);
+    border: 1px solid var(--blue-700);
+    border-radius: 3px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #B9CEE1;
+    overflow-x: auto;
+    margin: 8px 0 0;
+  }
+  .step .kw { color: var(--copper); }
+
+  /* ---- Title block footer ---- */
+
+  footer {
+    border-top: 1px solid var(--blue-700);
+    padding: 0;
+  }
+  .title-block {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .tb-cell {
+    border-right: 1px solid var(--blue-700);
+    border-bottom: 1px solid var(--blue-700);
+    padding: 12px 14px;
+  }
+  .tb-cell:last-child { border-right: none; }
+  .tb-cell .k { color: var(--blue-500); letter-spacing: 0.08em; display: block; margin-bottom: 4px; }
+  .tb-cell .v { color: var(--paper); }
+  .tb-cell.wide { grid-column: span 2; }
+
+  @media (max-width: 560px) {
+    .title-block { grid-template-columns: repeat(2, 1fr); }
+    .tb-cell.wide { grid-column: span 2; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .schematic-row .wire { animation: draw 0.9s ease-out 0.2s both; }
+    @keyframes draw {
+      from { clip-path: inset(0 100% 0 0); }
+      to { clip-path: inset(0 0 0 0); }
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">No bundler · No npm install · One file</p>
+    <h1>Build it. Wire it.<br>Ship it.</h1>
+    <p class="sub">elment.js is a dependency-free JavaScript framework. Every
+      element is <strong>built</strong> in one function call and
+      <strong>wired</strong> in the next — drop a single file in a
+      <code>&lt;script&gt;</code> tag and go.</p>
+
+    <div class="cta-row">
+      <a class="btn" href="elment.js" download>Download elment.js</a>
+      <a class="btn ghost" href="#demo">See it run</a>
+    </div>
+
+    <div class="schematic">
+      <span class="tick tl"></span><span class="tick tr"></span>
+      <span class="tick bl"></span><span class="tick br"></span>
+      <div class="schematic-row">
+        <div class="plug">
+          <span class="label">BUILD</span>
+          <span class="code">Button(<span class="attr">{ class: 'btn' }</span>, <span class="str">'Click me'</span>)</span>
+        </div>
+        <div class="wire"></div>
+        <div class="plug">
+          <span class="label">WIRE</span>
+          <span class="code">(handleClick)</span>
+        </div>
+      </div>
+      <p class="caption">First call builds the vnode. Second call attaches the event. That's the whole API.</p>
+    </div>
+  </div>
+</header>
+
+<section id="demo">
+  <div class="wrap">
+    <p class="eyebrow">Live, unbundled</p>
+    <h2>This page is the demo</h2>
+    <p class="section-lead">The panel on the right is running the exact
+      source on the left, loaded straight from <code>elment.js</code> via a
+      plain <code>&lt;script&gt;</code> tag. No compile step happened
+      between that code and this page.</p>
+
+    <div class="demo-panel">
+      <div class="source"><pre><span class="kw">let</span> form = { name: <span class="str">''</span>, role: <span class="str">'engineer'</span>, subscribe: <span class="kw">false</span> };
+
+<span class="kw">function</span> SignupForm() {
+  <span class="kw">return</span> Form({},
+    Input({ type: <span class="str">'text'</span>, value: form.name })
+      ({ oninput: e =&gt; { form.name = e.target.value; rerender(); } }),
+
+    Select({ value: form.role },
+      Option({ value: <span class="str">'engineer'</span> }, <span class="str">'Engineer'</span>),
+      Option({ value: <span class="str">'designer'</span> }, <span class="str">'Designer'</span>)
+    )({ onchange: e =&gt; { form.role = e.target.value; rerender(); } }),
+
+    Button({}, <span class="str">'Submit'</span>)(handleSubmit)
+  );
+}</pre></div>
+      <div class="live">
+        <p class="live-tag"><span class="live-dot"></span>rendered by elment.js</p>
+        <div id="form-demo-root"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Render methods</p>
+    <h2>Parts list</h2>
+    <p class="section-lead">Control flow isn't a template directive here —
+      it's a function, like everything else. Each one returns a vnode,
+      a list of vnodes, or null, and drops straight into a children list.</p>
+
+    <table class="parts">
+      <thead>
+        <tr><th>Part</th><th>Signature</th><th>Does</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="part-name">If / Else</td>
+          <td class="part-desc"><code>If(cond, then, Else(else))</code></td>
+          <td class="part-desc">Conditional branch. Branches can be lazy functions.</td>
+        </tr>
+        <tr>
+          <td class="part-name">For</td>
+          <td class="part-desc"><code>For(array, (item, i) =&gt; ...)</code></td>
+          <td class="part-desc">Maps data to a list of vnodes.</td>
+        </tr>
+        <tr>
+          <td class="part-name">Case</td>
+          <td class="part-desc"><code>Case(value, { key: branch, default })</code></td>
+          <td class="part-desc">Switch-style branching on a value.</td>
+        </tr>
+        <tr>
+          <td class="part-name">While</td>
+          <td class="part-desc"><code>While(condFn, bodyFn)</code></td>
+          <td class="part-desc">Builds a list by looping until a condition flips.</td>
+        </tr>
+        <tr>
+          <td class="part-name">Fetch</td>
+          <td class="part-desc"><code>Fetch(key, loaderFn, renderFn)</code></td>
+          <td class="part-desc">Async render method — shows a loading state, re-renders on resolve.</td>
+        </tr>
+        <tr>
+          <td class="part-name">provide / use</td>
+          <td class="part-desc"><code>provide(key, val)</code> / <code>use(key)</code></td>
+          <td class="part-desc">Register a shared helper once, pull it in anywhere.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Get started</p>
+    <h2>Three steps, no install</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="n">1</div>
+        <div class="body">
+          <h4>Get the file</h4>
+          <p class="section-lead" style="margin:0">Download <code>elment.js</code> and put it next to your HTML.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <div class="body">
+          <h4>Load it</h4>
+          <pre><span class="kw">&lt;script</span> src=<span class="kw">"elment.js"</span><span class="kw">&gt;&lt;/script&gt;</span></pre>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <div class="body">
+          <h4>Build and wire your first element</h4>
+          <pre>start(<span class="kw">() =&gt;</span>
+  Button({}, <span class="kw">'Click me'</span>)(<span class="kw">() =&gt;</span> alert(<span class="kw">'hi'</span>)),
+document.getElementById(<span class="kw">'root'</span>));</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="title-block">
+    <div class="tb-cell wide"><span class="k">TITLE</span><span class="v">ELMENT.JS</span></div>
+    <div class="tb-cell"><span class="k">SCALE</span><span class="v">1:1 — no build step</span></div>
+    <div class="tb-cell"><span class="k">SHEET</span><span class="v">1 of 1</span></div>
+    <div class="tb-cell wide"><span class="k">SOURCE</span><span class="v"><a href="elment.js">elment.js</a></span></div>
+    <div class="tb-cell"><span class="k">REV</span><span class="v">0.1</span></div>
+    <div class="tb-cell"><span class="k">LICENSE</span><span class="v">MIT</span></div>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   elment.js
+   A dependency-free JS framework: no HTML strings, no build step.
+
+   Core call shape:
+     Tag(attrs, ...children)(events)
+
+     - attrs: a plain object of props (class, style, value, etc.)
+     - children: passed as trailing args, NOT wrapped in []
+     - the whole thing returns a callable; calling it again attaches
+       events / render methods and returns the finalized vnode
+     - a bare function instead of an events object is shorthand
+       for { onclick: fn }
+
+   Example:
+     Button({ class: 'btn' }, 'Click me')(() => console.log('hi'))
+
+   Multiple top-level nodes go through Html(...), not bare parens
+   — JS's comma operator would silently drop all but the last value:
+     Html(
+       Div({}, 'first'),
+       Div({}, 'second')
+     )
+
+   Load this file with a plain <script src="elment.js"> tag, closed
+   normally, before your app code; it defines its API as ordinary
+   globals (Div, Button, If, For, start, etc.) so nothing else to wire up.
+   ============================================================ */
+
+(function (global) {
+
+  function isVNode(x) {
+    return typeof x === 'function' && x.__isVNode === true;
+  }
+
+  function makeTag(tagName) {
+    return function (attrs, ...rest) {
+      let props = {};
+      let children;
+
+      // Detect whether the first arg is a props object or actually a child
+      // (a plain object that isn't itself a vnode counts as props)
+      if (attrs && typeof attrs === 'object' && !isVNode(attrs)) {
+        props = attrs;
+        children = rest;
+      } else {
+        children = attrs === undefined ? rest : [attrs, ...rest];
+      }
+
+      const vnode = { tag: tagName, props, children, events: {} };
+
+      function finalize(eventsOrHandler) {
+        if (typeof eventsOrHandler === 'function') {
+          vnode.events = { onclick: eventsOrHandler };
+        } else if (eventsOrHandler && typeof eventsOrHandler === 'object') {
+          vnode.events = eventsOrHandler;
+        }
+        // keep the callable in sync so it can still be read as a vnode
+        finalize.events = vnode.events;
+        return finalize;
+      }
+
+      // Make the callable itself readable as a vnode (covers the case
+      // where a child is never "finalized" with a second call)
+      finalize.__isVNode = true;
+      finalize.tag = vnode.tag;
+      finalize.props = vnode.props;
+      finalize.children = vnode.children;
+      finalize.events = vnode.events;
+
+      return finalize;
+    };
+  }
+
+  // A fragment wrapper — holds multiple top-level nodes, since JS's
+  // comma operator can't (Html = (Div(...), Div(...)) would just
+  // discard everything but the last value).
+  function Html(...children) {
+    return { tag: '__fragment__', props: {}, children, events: {} };
+  }
+
+  /* ============================================================
+     Control-flow render methods.
+     Plain functions (not tags) — they return vnodes, arrays of
+     vnodes, or null, and slot directly into a children list.
+     The renderer flattens arrays and skips null/undefined/false.
+     ============================================================ */
+
+  // If(condition, thenBranch, elseBranch)
+  // Branches can be a vnode or a zero-arg function returning one
+  // (use a function when the branch does work you don't want to
+  // pay for — or that would throw — unless it's actually taken).
+  function If(condition, thenBranch, elseBranch) {
+    const branch = condition ? thenBranch : elseBranch;
+    if (branch === undefined) return null;
+    return typeof branch === 'function' ? branch() : branch;
+  }
+
+  // Else(x) — pure syntactic sugar, just returns what you pass it.
+  // Lets If(cond, Div(...), Else(Div(...))) read the way you'd expect.
+  function Else(branch) {
+    return branch;
+  }
+
+  // For(array, mapFn) — maps data to vnodes. mapFn gets (item, index).
+  function For(array, mapFn) {
+    return (array || []).map(mapFn);
+  }
+
+  // While(conditionFn, bodyFn) — builds a list by repeatedly calling
+  // bodyFn() while conditionFn() is true. bodyFn is responsible for
+  // advancing whatever state conditionFn checks, or this loops forever.
+  // Capped as a safety net against runaway loops during development.
+  function While(conditionFn, bodyFn, safetyLimit = 10000) {
+    const results = [];
+    let i = 0;
+    while (conditionFn() && i < safetyLimit) {
+      results.push(bodyFn());
+      i++;
+    }
+    return results;
+  }
+
+  // Case(value, { key: branch, ..., default: branch })
+  // Branches can be a vnode or a zero-arg function returning one.
+  function Case(value, cases) {
+    const branch = Object.prototype.hasOwnProperty.call(cases, value)
+      ? cases[value]
+      : cases.default;
+    if (branch === undefined) return null;
+    return typeof branch === 'function' ? branch() : branch;
+  }
+
+  // Auto-generate tag functions for common HTML elements.
+  // Add more tag names here as you need them.
+  const tagNames = [
+    'div', 'span', 'button', 'h1', 'h2', 'h3', 'h4', 'p', 'a', 'img',
+    'ul', 'ol', 'li', 'input', 'label', 'section', 'header', 'footer',
+    'nav', 'main', 'article', 'aside', 'form', 'select', 'option',
+    'textarea', 'table', 'thead', 'tbody', 'tr', 'td', 'th'
+  ];
+  const el = {};
+  tagNames.forEach(t => { el[t] = makeTag(t); });
+
+  function flattenChildren(children) {
+    const out = [];
+    (children || []).forEach(child => {
+      if (Array.isArray(child)) {
+        out.push(...flattenChildren(child));
+      } else if (child !== null && child !== undefined && child !== false) {
+        out.push(child);
+      }
+    });
+    return out;
+  }
+
+  function isText(v) {
+    return typeof v === 'string' || typeof v === 'number';
+  }
+
+  /* ============================================================
+     Diff/patch renderer.
+     Builds real DOM once, then on re-render walks old vnode vs
+     new vnode and only touches what actually changed, instead of
+     tearing everything down and recreating it.
+
+     Form fields get special handling: value/checked are set as
+     live DOM properties, not attributes, and only touched when
+     they actually differ from what's already in the field — so
+     typing doesn't get clobbered by the render that its own
+     keystroke triggered.
+     ============================================================ */
+
+  function createDom(vnode) {
+    if (vnode === null || vnode === undefined || vnode === false) {
+      return document.createComment('');
+    }
+    if (isText(vnode)) {
+      return document.createTextNode(String(vnode));
+    }
+    const dom = document.createElement(vnode.tag);
+    applyProps(dom, {}, vnode.props || {});
+    applyEvents(dom, {}, vnode.events || {});
+    flattenChildren(vnode.children).forEach(child => {
+      dom.appendChild(createDom(child));
+    });
+    // <select>'s value only "sticks" once its <option> children exist,
+    // so it's set again here, after they're appended.
+    if (vnode.tag === 'select' && vnode.props && 'value' in vnode.props) {
+      dom.value = vnode.props.value;
+    }
+    dom.__vnode = vnode;
+    return dom;
+  }
+
+  function applyProps(dom, oldProps, newProps) {
+    Object.keys(oldProps).forEach(key => {
+      if (!(key in newProps)) {
+        if (key === 'class') dom.className = '';
+        else if (key === 'value') dom.value = '';
+        else if (key === 'checked') dom.checked = false;
+        else dom.removeAttribute(key);
+      }
+    });
+    Object.keys(newProps).forEach(key => {
+      const val = newProps[key];
+      if (oldProps[key] === val) return;
+      if (key === 'class') {
+        dom.className = val;
+      } else if (key === 'style' && typeof val === 'object') {
+        Object.assign(dom.style, val);
+      } else if (key === 'value') {
+        // Only touch .value if it actually differs — this is what
+        // stops a controlled <input> from jumping the cursor on
+        // every keystroke-triggered re-render.
+        if (dom.value !== val) dom.value = val;
+      } else if (key === 'checked') {
+        dom.checked = !!val;
+      } else {
+        dom.setAttribute(key, val);
+      }
+    });
+  }
+
+  function applyEvents(dom, oldEvents, newEvents) {
+    Object.keys(oldEvents).forEach(evt => {
+      if (evt === 'onmount' || evt === 'onupdate') return;
+      if (newEvents[evt] !== oldEvents[evt]) {
+        dom.removeEventListener(evt.replace(/^on/, ''), oldEvents[evt]);
+      }
+    });
+    Object.keys(newEvents).forEach(evt => {
+      if (evt === 'onmount') {
+        if (!oldEvents.onmount) queueMicrotask(() => newEvents.onmount(dom));
+        return;
+      }
+      if (evt === 'onupdate') {
+        queueMicrotask(() => newEvents.onupdate(dom));
+        return;
+      }
+      if (newEvents[evt] !== oldEvents[evt]) {
+        dom.addEventListener(evt.replace(/^on/, ''), newEvents[evt]);
+      }
+    });
+  }
+
+  // Diffs a single slot: oldVNode/newVNode against the DOM node
+  // currently occupying that slot in parentDom.
+  function diffNode(parentDom, oldVNode, newVNode, domNode) {
+    if (newVNode === undefined) {
+      if (domNode) parentDom.removeChild(domNode);
+      return;
+    }
+    if (oldVNode === undefined || domNode === undefined) {
+      parentDom.appendChild(createDom(newVNode));
+      return;
+    }
+
+    const oldText = isText(oldVNode);
+    const newText = isText(newVNode);
+
+    if (oldText && newText) {
+      if (String(oldVNode) !== String(newVNode)) domNode.textContent = String(newVNode);
+      return;
+    }
+    if (oldText !== newText || (!oldText && !newText && oldVNode.tag !== newVNode.tag)) {
+      parentDom.replaceChild(createDom(newVNode), domNode);
+      return;
+    }
+
+    // Same tag in the same slot — update it in place instead of
+    // replacing it, so the actual DOM node (and its focus state)
+    // survives the re-render.
+    applyProps(domNode, oldVNode.props || {}, newVNode.props || {});
+    applyEvents(domNode, oldVNode.events || {}, newVNode.events || {});
+    diffChildren(domNode, flattenChildren(oldVNode.children), flattenChildren(newVNode.children));
+    if (newVNode.tag === 'select' && newVNode.props && 'value' in newVNode.props) {
+      domNode.value = newVNode.props.value;
+    }
+    domNode.__vnode = newVNode;
+  }
+
+  function diffChildren(parentDom, oldChildren, newChildren) {
+    const max = Math.max(oldChildren.length, newChildren.length);
+    // Index-based reconciliation — simple, and fine for lists that
+    // don't reorder. A reordering list would want key-based matching
+    // instead; worth adding if/when list output gets sorted/shuffled.
+    for (let i = max - 1; i >= 0; i--) {
+      if (oldChildren[i] === undefined && newChildren[i] !== undefined) {
+        parentDom.appendChild(createDom(newChildren[i]));
+      }
+    }
+    for (let i = 0; i < max; i++) {
+      if (newChildren[i] === undefined && oldChildren[i] !== undefined) {
+        const doomed = parentDom.childNodes[i];
+        if (doomed) parentDom.removeChild(doomed);
+      }
+    }
+    for (let i = 0; i < Math.min(oldChildren.length, newChildren.length); i++) {
+      diffNode(parentDom, oldChildren[i], newChildren[i], parentDom.childNodes[i]);
+    }
+  }
+
+  let __rootVNode = null;
+  let __rootContainer = null;
+
+  function mount(vnode, container) {
+    __rootContainer = container;
+    __rootVNode = vnode;
+    container.innerHTML = '';
+    const roots = vnode && vnode.tag === '__fragment__' ? flattenChildren(vnode.children) : [vnode];
+    roots.forEach(child => container.appendChild(createDom(child)));
+  }
+
+  function update(vnode) {
+    if (!__rootContainer) return;
+    const oldRoots = __rootVNode && __rootVNode.tag === '__fragment__'
+      ? flattenChildren(__rootVNode.children) : [__rootVNode];
+    const newRoots = vnode && vnode.tag === '__fragment__'
+      ? flattenChildren(vnode.children) : [vnode];
+    __rootVNode = vnode;
+    diffChildren(__rootContainer, oldRoots, newRoots);
+  }
+
+  /* ============================================================
+     App runner — remembers "how to rebuild the whole tree" so
+     anything (a click handler, a resolved Fetch) can trigger a
+     diffed re-render without passing callbacks around everywhere.
+     ============================================================ */
+  let rerender = () => {};
+
+  function start(appFn, container) {
+    rerender = () => update(appFn());
+    mount(appFn(), container);
+  }
+
+  /* ============================================================
+     Fetch — an async render method.
+     Fetch(key, loaderFn, renderFn)
+       key       — cache key; the same key won't re-fetch every render
+       loaderFn  — () => Promise<data>  (e.g. () => fetch(url).then(r => r.json()))
+       renderFn  — ({status, data, error}) => vnode
+     First render returns renderFn's "loading" branch immediately;
+     when the promise settles, it stores the result and calls
+     rerender() so the tree rebuilds with real data.
+     ============================================================ */
+  const __fetchCache = new Map();
+
+  function Fetch(key, loaderFn, renderFn) {
+    if (!__fetchCache.has(key)) {
+      const entry = { status: 'loading', data: null, error: null };
+      __fetchCache.set(key, entry);
+      Promise.resolve()
+        .then(loaderFn)
+        .then(data => {
+          entry.status = 'done';
+          entry.data = data;
+          rerender();
+        })
+        .catch(err => {
+          entry.status = 'error';
+          entry.error = err;
+          rerender();
+        });
+    }
+    return renderFn(__fetchCache.get(key));
+  }
+
+  /* ============================================================
+     Helper injection — provide(key, value) / use(key)
+     A tiny service locator so shared helpers (formatters, API
+     clients, config) don't have to be threaded through every
+     function as arguments. Provide once at startup, pull anywhere.
+     ============================================================ */
+  const __registry = new Map();
+
+  function provide(key, value) {
+    __registry.set(key, value);
+  }
+
+  function use(key) {
+    if (!__registry.has(key)) {
+      throw new Error(`elment: no helper injected for "${key}" — call provide('${key}', ...) first`);
+    }
+    return __registry.get(key);
+  }
+
+  /* ============================================================
+     Public API — exposed as plain globals so a bare <script> tag
+     is enough to use them, matching the rest of elment's
+     no-build-step philosophy.
+     ============================================================ */
+  const api = {
+    // tag functions, capitalized (Div, Button, H1, ...)
+    ...Object.fromEntries(
+      Object.entries(el).map(([tag, fn]) => [tag.charAt(0).toUpperCase() + tag.slice(1), fn])
+    ),
+    Html, If, Else, For, While, Case,
+    start, mount, update, rerender: () => rerender(),
+    Fetch, provide, use,
+    // escape hatch: the raw lowercase tag map, and isVNode for advanced use
+    el, isVNode
+  };
+
+  Object.assign(global, api);
+  global.elment = api;
+
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+  // The signup form in the demo panel, built and wired with elment.js
+  let form = { name: '', role: 'engineer', subscribe: false };
+
+  function SignupForm() {
+    return Div({},
+      Div({ class: 'field' },
+        Label({}, 'Name'),
+        Input({ type: 'text', value: form.name, placeholder: 'Ada Lovelace' })({
+          oninput: (e) => { form.name = e.target.value; rerender(); }
+        })
+      ),
+      Div({ class: 'field' },
+        Label({}, 'Role'),
+        Select({ value: form.role },
+          Option({ value: 'engineer' }, 'Engineer'),
+          Option({ value: 'designer' }, 'Designer')
+        )({
+          onchange: (e) => { form.role = e.target.value; rerender(); }
+        })
+      ),
+      Div({ class: 'field checkline' },
+        Input({ type: 'checkbox', checked: form.subscribe })({
+          onchange: (e) => { form.subscribe = e.target.checked; rerender(); }
+        }),
+        Label({}, 'Subscribe to updates')
+      ),
+      Button({ class: 'demo-btn' }, 'Submit')(() => {
+        alert(`Submitted: ${form.name || '(no name)'}, ${form.role}, subscribe=${form.subscribe}`);
+      }),
+      P({ class: 'demo-note' }, `Live state → name: "${form.name}", role: ${form.role}, subscribe: ${form.subscribe}`)
+    );
+  }
+
+  start(SignupForm, document.getElementById('form-demo-root'));
+</script>
+</body>
+</html>
