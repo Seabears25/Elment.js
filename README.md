@@ -3,8 +3,7 @@
 A dependency-free JavaScript framework. No bundler, no `npm install`, no
 build step — one file, dropped in with a `<script>` tag.
 
-**[Live demo →](https://<your-username>.github.io/<repo-name>/)**
-*(update this link once GitHub Pages is live — see below)*
+**[Live demo →](https://seabears25.github.io/Elment.js/)**
 
 ## Why
 
