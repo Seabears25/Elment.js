@@ -3,421 +3,120 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>elment.js — build it, wire it, ship it</title>
-<meta name="description" content="A dependency-free JavaScript framework. No bundler, no build step, one file.">
+<title>elment — build it, wire it, ship it (browser + Express)</title>
+<meta name="description" content="One dependency-free DSL, two targets: elment.js for the browser and elment-framework for Express. No bundler, no build step.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --blue-900: #0E2A47;
-    --blue-800: #123457;
-    --blue-700: #1D4470;
-    --blue-500: #5B85AD;
-    --paper: #EDF2F6;
-    --paper-dim: #DCE5EC;
-    --copper: #FF8C42;
-    --copper-dim: #C96A2E;
-    --ink: #0E2A47;
-    --good: #57B894;
-
-    --display: 'Space Grotesk', sans-serif;
-    --body: 'IBM Plex Sans', sans-serif;
-    --mono: 'IBM Plex Mono', monospace;
+    --blue-900:#0E2A47; --blue-800:#123457; --blue-700:#1D4470; --blue-500:#5B85AD;
+    --paper:#EDF2F6; --paper-dim:#DCE5EC; --copper:#FF8C42; --copper-dim:#C96A2E; --ink:#0E2A47; --good:#57B894;
+    --display:'Space Grotesk',sans-serif; --body:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
   }
-
-  * { box-sizing: border-box; }
-
-  html { scroll-behavior: smooth; }
-
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
   body {
-    margin: 0;
-    background: var(--blue-900);
-    background-image:
-      linear-gradient(var(--blue-800) 1px, transparent 1px),
-      linear-gradient(90deg, var(--blue-800) 1px, transparent 1px);
-    background-size: 32px 32px;
-    color: var(--paper);
-    font-family: var(--body);
-    line-height: 1.55;
+    margin:0; background:var(--blue-900);
+    background-image:linear-gradient(var(--blue-800) 1px,transparent 1px),linear-gradient(90deg,var(--blue-800) 1px,transparent 1px);
+    background-size:32px 32px; color:var(--paper); font-family:var(--body); line-height:1.55;
+  }
+  a { color:var(--copper); }
+  code, pre { font-family:var(--mono); }
+  .wrap { max-width:880px; margin:0 auto; padding:0 24px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--copper); margin:0 0 14px; }
+  h1,h2,h3 { font-family:var(--display); font-weight:700; margin:0; color:#fff; }
+
+  header.hero { padding:96px 0 64px; }
+  .hero h1 { font-size:clamp(40px,6vw,68px); line-height:1.02; letter-spacing:-.01em; }
+  .hero .sub { max-width:56ch; color:var(--blue-500); font-size:18px; margin:20px 0 0; }
+  .hero .sub strong { color:var(--paper); font-weight:500; }
+  .cta-row { display:flex; gap:14px; margin-top:32px; flex-wrap:wrap; }
+  .btn { font-family:var(--mono); font-size:14px; font-weight:500; padding:12px 20px; border-radius:3px; border:1px solid var(--copper); background:var(--copper); color:var(--blue-900); text-decoration:none; display:inline-flex; align-items:center; gap:8px; transition:background .15s; }
+  .btn:hover { background:var(--copper-dim); border-color:var(--copper-dim); }
+  .btn.ghost { background:transparent; color:var(--paper); border-color:var(--blue-700); }
+  .btn.ghost:hover { border-color:var(--blue-500); }
+
+  .schematic { margin-top:56px; border:1px solid var(--blue-700); border-radius:4px; padding:28px; background:rgba(237,242,246,.02); position:relative; }
+  .schematic .tick { position:absolute; width:10px; height:10px; border:1px solid var(--blue-500); }
+  .tick.tl { top:-1px; left:-1px; border-right:none; border-bottom:none; }
+  .tick.tr { top:-1px; right:-1px; border-left:none; border-bottom:none; }
+  .tick.bl { bottom:-1px; left:-1px; border-right:none; border-top:none; }
+  .tick.br { bottom:-1px; right:-1px; border-left:none; border-top:none; }
+  .schematic-row { display:flex; align-items:center; flex-wrap:wrap; }
+  .schematic-row + .schematic-row { margin-top:22px; }
+  .plug { font-family:var(--mono); font-size:14px; padding:14px 18px; border-radius:3px; border:1px solid var(--blue-700); background:var(--blue-800); white-space:nowrap; }
+  .plug .label { display:block; font-size:10px; letter-spacing:.12em; color:var(--copper); margin-bottom:6px; }
+  .plug .attr { color:#8FB6D9; } .plug .str { color:var(--good); }
+  .wire { flex:1; min-width:40px; height:1px; background:repeating-linear-gradient(90deg,var(--copper) 0 6px,transparent 6px 11px); position:relative; }
+  .wire::after { content:''; position:absolute; right:-4px; top:-3px; width:7px; height:7px; border-radius:50%; background:var(--copper); }
+  .schematic .caption { font-family:var(--mono); font-size:12px; color:var(--blue-500); margin:16px 0 0; }
+  @media (max-width:640px) {
+    .schematic-row { flex-direction:column; align-items:stretch; }
+    .wire { width:1px; height:28px; margin:4px auto; }
+    .wire::after { right:-3px; top:auto; bottom:-4px; }
   }
 
-  a { color: var(--copper); }
+  section { padding:64px 0; border-top:1px dashed var(--blue-700); }
+  section.target { border-top:1px solid var(--blue-700); }
+  section h2 { font-size:28px; }
+  .section-lead { color:var(--blue-500); max-width:58ch; margin:14px 0 32px; font-size:15px; }
+  .section-lead code { color:var(--paper); }
+  h3.sub-h { font-size:20px; margin:40px 0 12px; }
 
-  .wrap {
-    max-width: 880px;
-    margin: 0 auto;
-    padding: 0 24px;
+  .demo-panel { display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--blue-700); border-radius:4px; overflow:hidden; }
+  .demo-panel .source { background:var(--blue-800); padding:20px; border-right:1px solid var(--blue-700); overflow-x:auto; }
+  .demo-panel .source pre { margin:0; font-size:12.5px; line-height:1.6; color:#B9CEE1; }
+  .kw { color:var(--copper); } .str { color:var(--good); } .cm { color:var(--blue-500); }
+  .demo-panel .live { background:var(--paper); color:var(--ink); padding:20px; }
+  .live-tag { font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--copper-dim); display:flex; align-items:center; gap:6px; margin:0 0 14px; }
+  .live-dot { width:6px; height:6px; border-radius:50%; background:var(--good); display:inline-block; }
+  @media (max-width:720px) {
+    .demo-panel { grid-template-columns:1fr; }
+    .demo-panel .source { border-right:none; border-bottom:1px solid var(--blue-700); }
   }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-family:var(--mono); font-size:12px; color:var(--blue-700); margin-bottom:5px; }
+  .field input[type="text"], .field select { width:100%; font-family:var(--body); font-size:14px; padding:8px 10px; border:1px solid var(--paper-dim); border-radius:3px; background:#fff; color:var(--ink); }
+  .field.checkline { display:flex; align-items:center; gap:8px; }
+  .field.checkline label { margin:0; color:var(--ink); font-family:var(--body); font-size:14px; }
+  .demo-btn { font-family:var(--mono); font-size:13px; padding:8px 16px; border-radius:3px; border:1px solid var(--blue-900); background:var(--blue-900); color:#fff; cursor:pointer; }
+  .demo-btn:hover { background:var(--blue-700); }
+  .demo-note { font-family:var(--mono); font-size:12px; color:var(--copper-dim); margin-top:12px; border-top:1px dashed var(--paper-dim); padding-top:10px; }
 
-  .eyebrow {
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--copper);
-    margin: 0 0 14px;
-  }
+  table.parts { width:100%; border-collapse:collapse; font-size:14px; margin-top:8px; }
+  table.parts th { font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; text-align:left; color:var(--blue-500); border-bottom:1px solid var(--blue-700); padding:8px 12px 8px 0; }
+  table.parts td { padding:12px 12px 12px 0; border-bottom:1px solid var(--blue-800); vertical-align:top; }
+  table.parts td.part-name { font-family:var(--mono); color:var(--copper); white-space:nowrap; }
+  table.parts td.part-desc { color:var(--blue-500); }
 
-  h1, h2, h3 {
-    font-family: var(--display);
-    font-weight: 700;
-    margin: 0;
-    color: #fff;
-  }
+  .steps { display:grid; gap:16px; }
+  .step { display:grid; grid-template-columns:32px 1fr; gap:16px; }
+  .step .n { font-family:var(--mono); color:var(--copper); border:1px solid var(--blue-700); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .step .body h4 { font-family:var(--display); color:#fff; margin:4px 0 6px; font-size:16px; }
 
-  code, pre {
-    font-family: var(--mono);
-  }
+  .code-label { font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--copper); margin:0 0 8px; }
+  pre.code, .step pre { background:var(--blue-800); border:1px solid var(--blue-700); border-radius:3px; padding:14px 16px; font-size:13px; line-height:1.6; color:#B9CEE1; overflow-x:auto; margin:0 0 24px; }
+  .step pre { margin:8px 0 0; }
 
-  /* ---- Header / hero ---- */
+  .essentials { list-style:none; padding:0; margin:0; }
+  .essentials li { display:grid; grid-template-columns:170px 1fr; gap:16px; padding:12px 0; border-bottom:1px solid var(--blue-800); font-size:14px; }
+  .essentials .k { font-family:var(--mono); color:var(--copper); }
+  .essentials .d { color:var(--blue-500); }
+  .essentials .d code { color:var(--paper); }
+  @media (max-width:640px) { .essentials li { grid-template-columns:1fr; gap:4px; } }
 
-  header.hero {
-    padding: 96px 0 64px;
-  }
+  footer { border-top:1px solid var(--blue-700); }
+  .title-block { display:grid; grid-template-columns:repeat(4,1fr); font-family:var(--mono); font-size:11px; }
+  .tb-cell { border-right:1px solid var(--blue-700); border-bottom:1px solid var(--blue-700); padding:12px 14px; }
+  .tb-cell:last-child { border-right:none; }
+  .tb-cell .k { color:var(--blue-500); letter-spacing:.08em; display:block; margin-bottom:4px; }
+  .tb-cell.wide { grid-column:span 2; }
+  @media (max-width:560px) { .title-block { grid-template-columns:repeat(2,1fr); } }
 
-  .hero h1 {
-    font-size: clamp(40px, 6vw, 68px);
-    line-height: 1.02;
-    letter-spacing: -0.01em;
-  }
-
-  .hero .sub {
-    max-width: 52ch;
-    color: var(--blue-500);
-    font-size: 18px;
-    margin: 20px 0 0;
-  }
-
-  .hero .sub strong { color: var(--paper); font-weight: 500; }
-
-  .cta-row {
-    display: flex;
-    gap: 14px;
-    margin-top: 32px;
-    flex-wrap: wrap;
-  }
-
-  .btn {
-    font-family: var(--mono);
-    font-size: 14px;
-    font-weight: 500;
-    padding: 12px 20px;
-    border-radius: 3px;
-    border: 1px solid var(--copper);
-    background: var(--copper);
-    color: var(--blue-900);
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    transition: background 0.15s, color 0.15s;
-  }
-  .btn:hover { background: var(--copper-dim); border-color: var(--copper-dim); }
-
-  .btn.ghost {
-    background: transparent;
-    color: var(--paper);
-    border-color: var(--blue-700);
-  }
-  .btn.ghost:hover { border-color: var(--blue-500); }
-
-  /* ---- Schematic (signature element) ---- */
-
-  .schematic {
-    margin-top: 56px;
-    border: 1px solid var(--blue-700);
-    border-radius: 4px;
-    padding: 28px;
-    background: rgba(237, 242, 246, 0.02);
-    position: relative;
-  }
-
-  .schematic .tick {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    border: 1px solid var(--blue-500);
-  }
-  .schematic .tick.tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-  .schematic .tick.tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
-  .schematic .tick.bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
-  .schematic .tick.br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
-
-  .schematic-row {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    flex-wrap: wrap;
-  }
-
-  .plug {
-    font-family: var(--mono);
-    font-size: 15px;
-    padding: 14px 18px;
-    border-radius: 3px;
-    border: 1px solid var(--blue-700);
-    background: var(--blue-800);
-    white-space: nowrap;
-  }
-  .plug .label {
-    display: block;
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    color: var(--copper);
-    margin-bottom: 6px;
-  }
-  .plug .code { color: var(--paper); }
-  .plug .attr { color: #8FB6D9; }
-  .plug .str { color: var(--good); }
-
-  .wire {
-    flex: 1;
-    min-width: 40px;
-    height: 1px;
-    background: repeating-linear-gradient(90deg, var(--copper) 0 6px, transparent 6px 11px);
-    position: relative;
-  }
-  .wire::after {
-    content: '';
-    position: absolute;
-    right: -4px;
-    top: -3px;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--copper);
-  }
-
-  .schematic .caption {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--blue-500);
-    margin-top: 16px;
-  }
-
-  @media (max-width: 640px) {
-    .schematic-row { flex-direction: column; align-items: stretch; }
-    .wire { width: 1px; height: 28px; margin: 4px auto; }
-    .wire::after { right: -3px; top: auto; bottom: -4px; }
-  }
-
-  /* ---- Sections ---- */
-
-  section {
-    padding: 64px 0;
-    border-top: 1px dashed var(--blue-700);
-  }
-
-  section h2 {
-    font-size: 28px;
-  }
-
-  section > .wrap > .eyebrow { margin-top: 4px; }
-
-  .section-lead {
-    color: var(--blue-500);
-    max-width: 58ch;
-    margin: 14px 0 32px;
-    font-size: 15px;
-  }
-
-  /* ---- Live demo panel ---- */
-
-  .demo-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    border: 1px solid var(--blue-700);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .demo-panel .source {
-    background: var(--blue-800);
-    padding: 20px;
-    border-right: 1px solid var(--blue-700);
-    overflow-x: auto;
-  }
-  .demo-panel .source pre {
-    margin: 0;
-    font-size: 12.5px;
-    line-height: 1.6;
-    color: #B9CEE1;
-    white-space: pre;
-  }
-  .demo-panel .source .kw { color: var(--copper); }
-  .demo-panel .source .str { color: var(--good); }
-
-  .demo-panel .live {
-    background: var(--paper);
-    color: var(--ink);
-    padding: 20px;
-  }
-  .demo-panel .live-tag {
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    color: var(--copper-dim);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 14px;
-  }
-  .live-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--good);
-    display: inline-block;
-  }
-
-  @media (max-width: 720px) {
-    .demo-panel { grid-template-columns: 1fr; }
-    .demo-panel .source { border-right: none; border-bottom: 1px solid var(--blue-700); }
-  }
-
-  .field { margin-bottom: 14px; }
-  .field label {
-    display: block;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--blue-700);
-    margin-bottom: 5px;
-  }
-  .field input[type="text"], .field select {
-    width: 100%;
-    font-family: var(--body);
-    font-size: 14px;
-    padding: 8px 10px;
-    border: 1px solid var(--paper-dim);
-    border-radius: 3px;
-    background: #fff;
-    color: var(--ink);
-  }
-  .field.checkline { display: flex; align-items: center; gap: 8px; }
-  .field.checkline label { margin: 0; color: var(--ink); font-family: var(--body); font-size: 14px; }
-
-  .demo-btn {
-    font-family: var(--mono);
-    font-size: 13px;
-    padding: 8px 16px;
-    border-radius: 3px;
-    border: 1px solid var(--blue-900);
-    background: var(--blue-900);
-    color: #fff;
-    cursor: pointer;
-  }
-  .demo-btn:hover { background: var(--blue-700); }
-
-  .demo-note {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--copper-dim);
-    margin-top: 12px;
-    border-top: 1px dashed var(--paper-dim);
-    padding-top: 10px;
-  }
-
-  /* ---- Parts list (BOM) ---- */
-
-  table.parts {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-  }
-  table.parts th {
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    text-align: left;
-    color: var(--blue-500);
-    border-bottom: 1px solid var(--blue-700);
-    padding: 8px 12px 8px 0;
-  }
-  table.parts td {
-    padding: 12px 12px 12px 0;
-    border-bottom: 1px solid var(--blue-800);
-    vertical-align: top;
-  }
-  table.parts td.part-name {
-    font-family: var(--mono);
-    color: var(--copper);
-    white-space: nowrap;
-  }
-  table.parts td.part-desc { color: var(--blue-500); }
-
-  /* ---- Get started ---- */
-
-  .steps {
-    display: grid;
-    gap: 16px;
-  }
-  .step {
-    display: grid;
-    grid-template-columns: 32px 1fr;
-    gap: 16px;
-  }
-  .step .n {
-    font-family: var(--mono);
-    color: var(--copper);
-    border: 1px solid var(--blue-700);
-    border-radius: 50%;
-    width: 32px; height: 32px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-  }
-  .step .body h4 {
-    font-family: var(--display);
-    color: #fff;
-    margin: 4px 0 6px;
-    font-size: 16px;
-  }
-  .step pre {
-    background: var(--blue-800);
-    border: 1px solid var(--blue-700);
-    border-radius: 3px;
-    padding: 12px 14px;
-    font-size: 13px;
-    color: #B9CEE1;
-    overflow-x: auto;
-    margin: 8px 0 0;
-  }
-  .step .kw { color: var(--copper); }
-
-  /* ---- Title block footer ---- */
-
-  footer {
-    border-top: 1px solid var(--blue-700);
-    padding: 0;
-  }
-  .title-block {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    font-family: var(--mono);
-    font-size: 11px;
-  }
-  .tb-cell {
-    border-right: 1px solid var(--blue-700);
-    border-bottom: 1px solid var(--blue-700);
-    padding: 12px 14px;
-  }
-  .tb-cell:last-child { border-right: none; }
-  .tb-cell .k { color: var(--blue-500); letter-spacing: 0.08em; display: block; margin-bottom: 4px; }
-  .tb-cell .v { color: var(--paper); }
-  .tb-cell.wide { grid-column: span 2; }
-
-  @media (max-width: 560px) {
-    .title-block { grid-template-columns: repeat(2, 1fr); }
-    .tb-cell.wide { grid-column: span 2; }
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .schematic-row .wire { animation: draw 0.9s ease-out 0.2s both; }
-    @keyframes draw {
-      from { clip-path: inset(0 100% 0 0); }
-      to { clip-path: inset(0 0 0 0); }
-    }
+  @media (prefers-reduced-motion:no-preference) {
+    .schematic-row .wire { animation:draw .9s ease-out .2s both; }
+    @keyframes draw { from { clip-path:inset(0 100% 0 0); } to { clip-path:inset(0 0 0 0); } }
   }
 </style>
 </head>
@@ -425,45 +124,49 @@
 
 <header class="hero">
   <div class="wrap">
-    <p class="eyebrow">No bundler · No npm install · One file</p>
+    <p class="eyebrow">Browser · Express · Zero dependencies</p>
     <h1>Build it. Wire it.<br>Ship it.</h1>
-    <p class="sub">elment.js is a dependency-free JavaScript framework. Every
-      element is <strong>built</strong> in one function call and
-      <strong>wired</strong> in the next — drop a single file in a
-      <code>&lt;script&gt;</code> tag and go.</p>
+    <p class="sub">elment is a dependency-free DSL with two targets.
+      <strong>elment.js</strong> builds and wires elements in the browser from one
+      <code>&lt;script&gt;</code> tag. <strong>elment-framework</strong> renders
+      scoped, slot-based components to HTML strings on your Express server.</p>
 
     <div class="cta-row">
-      <a class="btn" href="elment.js" download>Download elment.js</a>
+      <a class="btn" href="#browser">Browser: elment.js</a>
+      <a class="btn ghost" href="#server">Server: Express</a>
       <a class="btn ghost" href="#demo">See it run</a>
     </div>
 
     <div class="schematic">
-      <span class="tick tl"></span><span class="tick tr"></span>
-      <span class="tick bl"></span><span class="tick br"></span>
+      <span class="tick tl"></span><span class="tick tr"></span><span class="tick bl"></span><span class="tick br"></span>
       <div class="schematic-row">
-        <div class="plug">
-          <span class="label">BUILD</span>
-          <span class="code">Button(<span class="attr">{ class: 'btn' }</span>, <span class="str">'Click me'</span>)</span>
-        </div>
+        <div class="plug"><span class="label">BUILD</span>Button(<span class="attr">{ class: 'btn' }</span>, <span class="str">'Click me'</span>)</div>
         <div class="wire"></div>
-        <div class="plug">
-          <span class="label">WIRE</span>
-          <span class="code">(handleClick)</span>
-        </div>
+        <div class="plug"><span class="label">WIRE</span>(handleClick)</div>
       </div>
-      <p class="caption">First call builds the vnode. Second call attaches the event. That's the whole API.</p>
+      <div class="schematic-row">
+        <div class="plug"><span class="label">DEFINE</span>views/card.<span class="attr">elc</span></div>
+        <div class="wire"></div>
+        <div class="plug"><span class="label">RENDER</span>res.render(<span class="str">'card'</span>, props)</div>
+      </div>
+      <p class="caption">Browser: build the vnode, then attach the event. Server: define the component, then render it per request.</p>
     </div>
   </div>
 </header>
+
+<section id="browser" class="target">
+  <div class="wrap">
+    <p class="eyebrow">01 · Browser</p>
+    <h2>elment.js</h2>
+    <p class="section-lead">Every element is built in one function call and wired in the next. Drop a single file in a <code>&lt;script&gt;</code> tag and go. No bundler, no <code>npm install</code>.</p>
+  </div>
+</section>
 
 <section id="demo">
   <div class="wrap">
     <p class="eyebrow">Live, unbundled</p>
     <h2>This page is the demo</h2>
-    <p class="section-lead">The panel on the right is running the exact
-      source on the left, loaded straight from <code>elment.js</code> via a
-      plain <code>&lt;script&gt;</code> tag. No compile step happened
-      between that code and this page.</p>
+    <p class="section-lead">The panel on the right is running the exact source on the left, loaded straight from <code>elment.js</code> via a plain <code>&lt;script&gt;</code> tag. No compile step happened between that code and this page.</p>
 
     <div class="demo-panel">
       <div class="source"><pre><span class="kw">let</span> form = { name: <span class="str">''</span>, role: <span class="str">'engineer'</span>, subscribe: <span class="kw">false</span> };
@@ -493,45 +196,16 @@
   <div class="wrap">
     <p class="eyebrow">Render methods</p>
     <h2>Parts list</h2>
-    <p class="section-lead">Control flow isn't a template directive here —
-      it's a function, like everything else. Each one returns a vnode,
-      a list of vnodes, or null, and drops straight into a children list.</p>
-
+    <p class="section-lead">Control flow isn't a template directive here. It's a function, like everything else. Each one returns a vnode, a list of vnodes, or null, and drops straight into a children list.</p>
     <table class="parts">
-      <thead>
-        <tr><th>Part</th><th>Signature</th><th>Does</th></tr>
-      </thead>
+      <thead><tr><th>Part</th><th>Signature</th><th>Does</th></tr></thead>
       <tbody>
-        <tr>
-          <td class="part-name">If / Else</td>
-          <td class="part-desc"><code>If(cond, then, Else(else))</code></td>
-          <td class="part-desc">Conditional branch. Branches can be lazy functions.</td>
-        </tr>
-        <tr>
-          <td class="part-name">For</td>
-          <td class="part-desc"><code>For(array, (item, i) =&gt; ...)</code></td>
-          <td class="part-desc">Maps data to a list of vnodes.</td>
-        </tr>
-        <tr>
-          <td class="part-name">Case</td>
-          <td class="part-desc"><code>Case(value, { key: branch, default })</code></td>
-          <td class="part-desc">Switch-style branching on a value.</td>
-        </tr>
-        <tr>
-          <td class="part-name">While</td>
-          <td class="part-desc"><code>While(condFn, bodyFn)</code></td>
-          <td class="part-desc">Builds a list by looping until a condition flips.</td>
-        </tr>
-        <tr>
-          <td class="part-name">Fetch</td>
-          <td class="part-desc"><code>Fetch(key, loaderFn, renderFn)</code></td>
-          <td class="part-desc">Async render method — shows a loading state, re-renders on resolve.</td>
-        </tr>
-        <tr>
-          <td class="part-name">provide / use</td>
-          <td class="part-desc"><code>provide(key, val)</code> / <code>use(key)</code></td>
-          <td class="part-desc">Register a shared helper once, pull it in anywhere.</td>
-        </tr>
+        <tr><td class="part-name">If / Else</td><td class="part-desc"><code>If(cond, then, Else(else))</code></td><td class="part-desc">Conditional branch. Branches can be lazy functions.</td></tr>
+        <tr><td class="part-name">For</td><td class="part-desc"><code>For(array, (item, i) =&gt; ...)</code></td><td class="part-desc">Maps data to a list of vnodes.</td></tr>
+        <tr><td class="part-name">Case</td><td class="part-desc"><code>Case(value, { key: branch, default })</code></td><td class="part-desc">Switch-style branching on a value.</td></tr>
+        <tr><td class="part-name">While</td><td class="part-desc"><code>While(condFn, bodyFn)</code></td><td class="part-desc">Builds a list by looping until a condition flips.</td></tr>
+        <tr><td class="part-name">Fetch</td><td class="part-desc"><code>Fetch(key, loaderFn, renderFn)</code></td><td class="part-desc">Async render method. Shows a loading state, re-renders on resolve.</td></tr>
+        <tr><td class="part-name">provide / use</td><td class="part-desc"><code>provide(key, val)</code> / <code>use(key)</code></td><td class="part-desc">Register a shared helper once, pull it in anywhere.</td></tr>
       </tbody>
     </table>
   </div>
@@ -539,49 +213,100 @@
 
 <section>
   <div class="wrap">
-    <p class="eyebrow">Get started</p>
+    <p class="eyebrow">Get started in the browser</p>
     <h2>Three steps, no install</h2>
-
-    <div class="steps">
-      <div class="step">
-        <div class="n">1</div>
-        <div class="body">
-          <h4>Get the file</h4>
-          <p class="section-lead" style="margin:0">Download <code>elment.js</code> and put it next to your HTML.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="n">2</div>
-        <div class="body">
-          <h4>Load it</h4>
-          <pre><span class="kw">&lt;script</span> src=<span class="kw">"elment.js"</span><span class="kw">&gt;&lt;/script&gt;</span></pre>
-        </div>
-      </div>
-      <div class="step">
-        <div class="n">3</div>
-        <div class="body">
-          <h4>Build and wire your first element</h4>
-          <pre>start(<span class="kw">() =&gt;</span>
+    <div class="steps" style="margin-top:28px">
+      <div class="step"><div class="n">1</div><div class="body"><h4>Get the file</h4><p class="section-lead" style="margin:0">Download <code>elment.js</code> and put it next to your HTML.</p></div></div>
+      <div class="step"><div class="n">2</div><div class="body"><h4>Load it</h4><pre><span class="kw">&lt;script</span> src=<span class="kw">"elment.js"</span><span class="kw">&gt;&lt;/script&gt;</span></pre></div></div>
+      <div class="step"><div class="n">3</div><div class="body"><h4>Build and wire your first element</h4><pre>start(<span class="kw">() =&gt;</span>
   Button({}, <span class="kw">'Click me'</span>)(<span class="kw">() =&gt;</span> alert(<span class="kw">'hi'</span>)),
-document.getElementById(<span class="kw">'root'</span>));</pre>
-        </div>
-      </div>
+document.getElementById(<span class="kw">'root'</span>));</pre></div></div>
     </div>
+    <div class="cta-row"><a class="btn" href="https://github.com/Seabears25/Elment.js" download>Download elment.js</a></div>
+  </div>
+</section>
+
+<section id="server" class="target">
+  <div class="wrap">
+    <p class="eyebrow">02 · Server</p>
+    <h2>elment-framework</h2>
+    <p class="section-lead">The same idea on the backend. Define scoped, slot-based components in <code>.elc</code> files and render them to HTML strings. Express-ready, no dependencies.</p>
+
+    <p class="code-label">A COMPONENT · views/card.elc</p>
+<pre class="code"><span class="kw">const</span> { Module, css, html, props, Slot, div, h1, p } = require(<span class="str">'elment-framework'</span>)();
+
+Module.componentName = <span class="str">'Card'</span>;
+
+css({
+  .card: { border: <span class="str">'1px solid #e6e6e6'</span>, borderRadius: <span class="str">'8px'</span>, padding: <span class="str">'16px'</span> },
+  .title: { fontSize: <span class="str">'20px'</span>, margin: <span class="str">'0 0 8px'</span> },
+});
+
+module.exports = html(
+  div({ <span class="str">'.card'</span>: <span class="kw">true</span> },
+    h1({ <span class="str">'.title'</span>: <span class="kw">true</span> }, props.title),
+    Slot(<span class="str">'body'</span>),
+  )(
+    { <span class="kw">if</span>: props.title },
+    Slot(<span class="str">'body'</span>)(props.body),
+  )
+);</pre>
+
+    <p class="code-label">EXPRESS INTEGRATION</p>
+<pre class="code"><span class="kw">const</span> express = require(<span class="str">'express'</span>);
+<span class="kw">const</span> elment  = require(<span class="str">'elment-framework'</span>);
+<span class="kw">const</span> { engine, middleware } = elment.createExpressAdapter();
+
+<span class="kw">const</span> app = express();
+app.engine(<span class="str">'elc'</span>, engine);
+app.set(<span class="str">'views'</span>, <span class="str">'./views'</span>);
+app.set(<span class="str">'view engine'</span>, <span class="str">'elc'</span>);
+app.use(middleware);
+
+<span class="cm">// As a view file:</span>
+app.get(<span class="str">'/'</span>, (req, res) =&gt; res.render(<span class="str">'card'</span>, { title: <span class="str">'Hi'</span>, body: <span class="str">'...'</span> }));
+
+<span class="cm">// Ad-hoc:</span>
+app.get(<span class="str">'/note'</span>, <span class="kw">async</span> (req, res) =&gt; {
+  <span class="kw">await</span> res.renderComponent(Card, { title: <span class="str">'Hi'</span> });
+});
+
+<span class="cm">// Full HTML document:</span>
+app.get(<span class="str">'/page'</span>, <span class="kw">async</span> (req, res) =&gt; {
+  <span class="kw">await</span> res.renderPage(Card, { title: <span class="str">'Hi'</span> }, { title: <span class="str">'My page'</span> });
+});</pre>
+
+    <h3 class="sub-h">DSL essentials</h3>
+    <ul class="essentials">
+      <li><span class="k">Conditions, then slots</span><span class="d">Second-call directives read as a sequence: <code>div(...)( { if: a }, { if: b }, Slot('x')(...) )</code>. Multiple <code>{ if }</code> AND together.</span></li>
+      <li><span class="k">Slot</span><span class="d"><code>Slot('name')</code> marks an injection point; <code>Slot('name')(children)</code> fills it. Components accept a second call too: <code>Tabs(props)( Slot('a')(...) )</code>.</span></li>
+      <li><span class="k">Late-bound props</span><span class="d"><code>props.title</code> resolves per render. Use <code>eq</code>/<code>ne</code> for comparisons, since raw <code>===</code> against the proxy evaluates eagerly.</span></li>
+      <li><span class="k">Lazy control flow</span><span class="d"><code>If</code> / <code>Else</code> / <code>For</code> / <code>While</code> / <code>Case</code> go lazy on prop refs.</span></li>
+      <li><span class="k">Scoped CSS</span><span class="d"><code>.card</code> becomes <code>.iC1-card</code> per render. In <code>.elc</code> files the quotes come off: <code>.card:</code>, <code>#id:</code>, <code>extendClass(base, child):</code>, <code>font-size:</code>.</span></li>
+      <li><span class="k">SCSS</span><span class="d"><code>css()</code> takes SCSS text (<code>$vars</code>, nesting, <code>&amp;</code>, <code>@extend</code>) or an object, which also supports nesting.</span></li>
+    </ul>
+
+    <h3 class="sub-h">Layout</h3>
+<pre class="code">elment-framework/
+  index.js     <span class="cm">— framework entry (the DSL factory + createExpressAdapter)</span>
+  express.js   <span class="cm">— Express adapter (view engine + res helpers)</span>
+  core/        <span class="cm">— the DSL core (dependency-free)</span>
+  example/     <span class="cm">— demo Express app + .elc view</span></pre>
   </div>
 </section>
 
 <footer>
   <div class="title-block">
-    <div class="tb-cell wide"><span class="k">TITLE</span><span class="v">ELMENT.JS</span></div>
-    <div class="tb-cell"><span class="k">SCALE</span><span class="v">1:1 — no build step</span></div>
-    <div class="tb-cell"><span class="k">SHEET</span><span class="v">1 of 1</span></div>
-    <div class="tb-cell wide"><span class="k">SOURCE</span><span class="v"><a href="elment.js">elment.js</a></span></div>
-    <div class="tb-cell"><span class="k">REV</span><span class="v">0.1</span></div>
-    <div class="tb-cell"><span class="k">LICENSE</span><span class="v">MIT</span></div>
+    <div class="tb-cell wide"><span class="k">TITLE</span>ELMENT</div>
+    <div class="tb-cell"><span class="k">SCALE</span>1:1 — no build step</div>
+    <div class="tb-cell"><span class="k">SHEET</span>1 of 1</div>
+    <div class="tb-cell wide"><span class="k">SOURCE</span><a href="https://github.com/Seabears25/Elment.js">elment.js</a> · <a href="https://github.com/Seabears25/Elment.js">elment-framework</a></div>
+    <div class="tb-cell"><span class="k">REV</span>0.1</div>
+    <div class="tb-cell"><span class="k">LICENSE</span>MIT</div>
   </div>
 </footer>
 
-<script src="elment.js" onerror="document.body.insertAdjacentHTML('afterbegin', '<div style=\'background:#c0392b;color:#fff;font-family:monospace;padding:14px 20px;position:sticky;top:0;z-index:99\'>elment.js failed to load — make sure elment.js is in the same folder as this file and that you\'re viewing it over http:// (not by double-clicking the file). See README.md.</div>')"></script>
+<script src="https://github.com/Seabears25/Elment.js" onerror="document.body.insertAdjacentHTML('afterbegin', '<div style=\'background:#c0392b;color:#fff;font-family:monospace;padding:14px 20px;position:sticky;top:0;z-index:99\'>elment.js failed to load — make sure elment.js is in the same folder as this file and that you\'re viewing it over http:// (not by double-clicking the file). See README.md.</div>')"></script>
 <script>
   // The signup form in the demo panel, built and wired with elment.js
   let form = { name: '', role: 'engineer', subscribe: false };
